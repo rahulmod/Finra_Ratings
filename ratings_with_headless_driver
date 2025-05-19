@@ -61,6 +61,36 @@ def scrape_visible_rows():
     return data
 
 
+def run(playwright):
+    browser = playwright.chromium.launch(headless=False)
+    page = browser.new_page()
+    page.goto("https://www.finra.org/finra-data/fixed-income/corp-and-agency")
+
+    # Wait for the page to load
+    page.wait_for_selector(".ag-center-cols-container", timeout=60000)
+
+    # Scroll to load all data
+    for _ in range(10):  # Adjust the number of scrolls as needed
+        page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(2)
+
+    # Extract data
+    data = page.evaluate("""
+        () => {
+            const rows = document.querySelectorAll('.ag-center-cols-container .ag-row');
+            return Array.from(rows).map(row => {
+                const cells = row.querySelectorAll('.ag-cell');
+                return Array.from(cells).map(cell => cell.textContent);
+            });
+        }
+    """)
+
+    print(f"Scraped {len(data)} rows of data")
+
+    browser.close()
+    return data
+
+
 # Scrape data
 all_data = []
 last_row_count = 0
